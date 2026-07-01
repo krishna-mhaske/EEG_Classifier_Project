@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEG Signal Classifier</title>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; /* Slightly refined font stack */
+            padding: 20px;
+            background-color: #eef2f7; /* Softer background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333; /* Darker text for better readability */
+            line-height: 1.6;
+            min-height: 100vh; /* Ensure body takes at least full viewport height */
+            margin: 0; /* Remove default body margin */
+        }
+
+        /* Main Container */
+        .container {
+            background-color: #ffffff;
+            padding: 40px 30px; /* Adjusted padding */
+            border-radius: 10px; /* More rounded corners */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Stronger, softer shadow */
+            text-align: center;
+            max-width: 700px; /* Increased max-width */
+            width: 95%; /* Adjusted width for responsiveness */
+            margin-top: 30px; /* Increased margin */
+        }
+
+        /* Headings */
+        h1 {
+            color: #007bff; /* Primary blue color */
+            margin-bottom: 20px; /* Increased margin */
+            font-size: 2em; /* Larger heading */
+            font-weight: 600; /* Slightly bolder */
+        }
+
+        h2 {
+            color: #0056b3; /* Slightly darker blue for subheadings */
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.6em;
+            font-weight: 600;
+        }
+
+        /* Paragraph Text */
+        p {
+            color: #555; /* Slightly darker subdued text */
+            margin-bottom: 30px; /* Increased margin */
+            font-size: 1.1em;
+        }
+
+        /* Form Styling */
+        form {
+            margin-bottom: 40px; /* Increased margin */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px; /* Add gap between form elements */
+        }
+
+        /* File Input Styling */
+        input[type="file"] {
+            border: 2px solid #007bff; /* Blue border */
+            padding: 12px 20px; /* Increased padding */
+            border-radius: 5px; /* Slightly more rounded */
+            margin: 0; /* Remove individual margin as gap is used */
+            cursor: pointer;
+            flex-grow: 1;
+            min-width: 220px; /* Adjusted minimum width */
+            background-color: #e9f2ff; /* Light blue background */
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+        }
+
+        input[type="file"]:hover {
+             border-color: #0056b3;
+             background-color: #d4e6ff;
+        }
+
+        /* Style the file input button (cross-browser compatibility may vary) */
+        input[type="file"]::file-selector-button {
+            background-color: #007bff; /* Match primary blue */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 15px; /* Increased space */
+            transition: background-color 0.2s ease, opacity 0.3s ease;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: #0056b3;
+            opacity: 0.9;
+        }
+
+        /* Submit Button Styling */
+        input[type="submit"] {
+            background-color: #28a745; /* Success green color */
+            color: white;
+            padding: 14px 30px; /* Increased padding */
+            border: none;
+            border-radius: 5px; /* Match file input border-radius */
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: background-color 0.2s ease, opacity 0.3s ease;
+            margin: 0; /* Remove individual margin as gap is used */
+        }
+
+        input[type="submit"]:hover {
+            background-color: #218838; /* Darker green on hover */
+            opacity: 0.9;
+        }
+
+        /* Result Section Styling */
+        .result-section {
+            margin-top: 40px; /* Increased margin */
+            background-color: #f1f7f9; /* Very light blue/gray background */
+            padding: 30px; /* Increased padding */
+            border-radius: 8px; /* Match container border-radius */
+            border: 1px solid #cce5ff; /* Light blue border */
+            width: 100%; /* Take full width of container */
+            box-sizing: border-box; /* Include padding and border in element's total width */
+            text-align: left; /* Align text left */
+        }
+
+        .result-item {
+            font-size: 1.2em; /* Larger font size */
+            color: #333;
+            margin-bottom: 15px; /* Increased margin */
+            word-break: break-word; /* Prevent long filenames from overflowing */
+        }
+
+        .result-item strong {
+            color: #007bff; /* Use primary blue for emphasis */
+            font-weight: 700; /* Bolder */
+        }
+
+        .result-item span {
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; /* Better monospace font stack */
+            background-color: #e9ecef; /* Light gray background */
+            padding: 4px 8px; /* Increased padding */
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+            font-size: 0.9em; /* Slightly smaller font for span */
+            display: inline-block; /* Allow padding/margin */
+            margin-left: 5px; /* Space after the label */
+        }
+
+        /* Probabilities Styling */
+        .probabilities {
+            margin-top: 20px; /* Increased margin */
+            font-size: 1.05em;
+            color: #555;
+        }
+
+        .probabilities strong {
+             color: #333; /* Darker color for label */
+        }
+
+        .probabilities ul {
+            list-style: disc; /* Use discs for list items */
+            padding-left: 20px; /* Add padding */
+            text-align: left;
+            max-width: 400px; /* Adjusted max-width */
+            margin: 10px 0 0 20px; /* Adjust margin and add left padding */
+            line-height: 1.8; /* Increased line spacing */
+        }
+
+         .probabilities li {
+            margin-bottom: 8px; /* Space between list items */
+            color: #444;
+         }
+
+        /* Flash Messages Styling */
+        .flash-messages {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 25px 0; /* Increased margin */
+            width: 100%;
+            box-sizing: border-box; /* Include padding/border in width */
+        }
+
+        .flash-messages li {
+            padding: 15px 20px; /* Increased padding */
+            margin-bottom: 12px; /* Increased margin */
+            border-radius: 5px; /* Match container border-radius */
+            text-align: left;
+            font-size: 1em;
+            border: 1px solid transparent;
+            opacity: 0.95; /* Slightly transparent */
+        }
+
+        .flash-messages .error {
+            background-color: #f8d7da; /* Light red */
+            color: #721c24; /* Dark red */
+            border-color: #f5c6cb; /* Red border */
+        }
+
+        .flash-messages .warning {
+            background-color: #fff3cd; /* Light yellow */
+            color: #856404; /* Dark yellow */
+            border-color: #ffeeba; /* Yellow border */
+        }
+
+        .flash-messages .info { /* Style for info/success */
+            background-color: #d4edda; /* Light green */
+            color: #155724; /* Dark green */
+            border-color: #c3e6cb; /* Green border */
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px; /* Adjust padding on smaller screens */
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.4em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+
+            form {
+                flex-direction: column; /* Stack form elements vertically */
+                align-items: stretch; /* Stretch items to fill width */
+            }
+
+            input[type="file"],
+            input[type="submit"] {
+                 width: 100%; /* Make inputs take full width */
+                 min-width: 0; /* Remove min-width constraint */
+                 margin: 5px 0; /* Add vertical margin */
+            }
+
+            input[type="file"]::file-selector-button {
+                 margin-right: 10px;
+            }
+
+            .result-section {
+                padding: 20px;
+            }
+
+            .result-item {
+                font-size: 1.1em;
+            }
+
+            .probabilities ul {
+                padding-left: 15px;
+                margin-left: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EEG Signal Classifier</h1>
+        <p>Upload a <code>.txt</code> file containing EEG data (like Z001.txt, O050.txt, etc.) to classify it into Set A, B, C, D, or E.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message in messages %}
+                    {# Default category to 'info' if not specified #}
+                    <li class="{{ category if category else 'info' }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form method="post" action="{{ url_for('upload_file_and_predict') }}" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".txt,.TXT" required>
+            <input type="submit" value="Upload & Predict">
+        </form>
+
+        {# Display prediction results only if prediction exists #}
+        {% if prediction %}
+        <div class="result-section">
+             <h2>Prediction Result</h2>
+             <div class="result-item">File: <span>{{ filename }}</span></div>
+             <div class="result-item">Predicted Class: <strong>{{ prediction }}</strong></div>
+
+             {# Display probabilities if available #}
+             {% if probabilities %}
+             <div class="probabilities">
+                 <strong>Confidence Scores:</strong>
+                 <ul>
+                     {% for class_name, prob in probabilities.items() %}
+                         <li>{{ class_name }}: {{ prob }}</li>
+                     {% endfor %}
+                 </ul>
+             </div>
+             {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>
