@@ -9,6 +9,9 @@
 ![Deployment](https://img.shields.io/badge/Deploy-Heroku%20Ready-purple?logo=heroku)
 
 ---
+## Demo 
+https://eeg-classifier-project.onrender.com/
+
 
 ## 📖 Table of Contents
 
