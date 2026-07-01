@@ -3,308 +3,999 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EEG Signal Classifier</title>
+    <title>NeuroScan — EEG Signal Classifier</title>
+    <meta name="description" content="AI-powered EEG signal classification. Upload a brain signal file and instantly detect epileptic seizure states using machine learning.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* General Body Styling */
+        /* ===== CSS RESET & VARIABLES ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary:    #050b18;
+            --bg-secondary:  #0a1628;
+            --bg-card:       rgba(15, 25, 50, 0.7);
+            --bg-glass:      rgba(255, 255, 255, 0.04);
+            --border-glass:  rgba(255, 255, 255, 0.08);
+            --accent-cyan:   #00d4ff;
+            --accent-purple: #7c3aed;
+            --accent-violet: #a855f7;
+            --accent-green:  #10b981;
+            --accent-red:    #ef4444;
+            --accent-yellow: #f59e0b;
+            --text-primary:  #f0f4ff;
+            --text-secondary:#94a3b8;
+            --text-muted:    #4a5568;
+            --glow-cyan:     0 0 30px rgba(0, 212, 255, 0.3);
+            --glow-purple:   0 0 30px rgba(124, 58, 237, 0.4);
+            --radius-lg:     20px;
+            --radius-md:     12px;
+            --radius-sm:     8px;
+            --transition:    all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== BACKGROUND & BODY ===== */
         body {
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; /* Slightly refined font stack */
-            padding: 20px;
-            background-color: #eef2f7; /* Softer background */
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background mesh */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 20% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0, 212, 255, 0.10) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 60% at 50% 50%, rgba(168, 85, 247, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Animated grid lines */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .page-wrapper {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            color: #333; /* Darker text for better readability */
-            line-height: 1.6;
-            min-height: 100vh; /* Ensure body takes at least full viewport height */
-            margin: 0; /* Remove default body margin */
+            padding: 40px 20px 80px;
         }
 
-        /* Main Container */
-        .container {
-            background-color: #ffffff;
-            padding: 40px 30px; /* Adjusted padding */
-            border-radius: 10px; /* More rounded corners */
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Stronger, softer shadow */
+        /* ===== HEADER ===== */
+        .header {
             text-align: center;
-            max-width: 700px; /* Increased max-width */
-            width: 95%; /* Adjusted width for responsiveness */
-            margin-top: 30px; /* Increased margin */
+            margin-bottom: 48px;
+            animation: fadeInDown 0.7s ease both;
         }
 
-        /* Headings */
-        h1 {
-            color: #007bff; /* Primary blue color */
-            margin-bottom: 20px; /* Increased margin */
-            font-size: 2em; /* Larger heading */
-            font-weight: 600; /* Slightly bolder */
-        }
-
-        h2 {
-            color: #0056b3; /* Slightly darker blue for subheadings */
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 1.6em;
-            font-weight: 600;
-        }
-
-        /* Paragraph Text */
-        p {
-            color: #555; /* Slightly darker subdued text */
-            margin-bottom: 30px; /* Increased margin */
-            font-size: 1.1em;
-        }
-
-        /* Form Styling */
-        form {
-            margin-bottom: 40px; /* Increased margin */
-            display: flex;
-            justify-content: center;
+        .logo-badge {
+            display: inline-flex;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 15px; /* Add gap between form elements */
+            gap: 10px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 50px;
+            padding: 8px 20px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
         }
 
-        /* File Input Styling */
-        input[type="file"] {
-            border: 2px solid #007bff; /* Blue border */
-            padding: 12px 20px; /* Increased padding */
-            border-radius: 5px; /* Slightly more rounded */
-            margin: 0; /* Remove individual margin as gap is used */
-            cursor: pointer;
-            flex-grow: 1;
-            min-width: 220px; /* Adjusted minimum width */
-            background-color: #e9f2ff; /* Light blue background */
-            transition: border-color 0.3s ease, background-color 0.3s ease;
+        .logo-badge .pulse-dot {
+            width: 8px; height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
         }
 
-        input[type="file"]:hover {
-             border-color: #0056b3;
-             background-color: #d4e6ff;
-        }
-
-        /* Style the file input button (cross-browser compatibility may vary) */
-        input[type="file"]::file-selector-button {
-            background-color: #007bff; /* Match primary blue */
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 15px; /* Increased space */
-            transition: background-color 0.2s ease, opacity 0.3s ease;
-        }
-        input[type="file"]::file-selector-button:hover {
-            background-color: #0056b3;
-            opacity: 0.9;
-        }
-
-        /* Submit Button Styling */
-        input[type="submit"] {
-            background-color: #28a745; /* Success green color */
-            color: white;
-            padding: 14px 30px; /* Increased padding */
-            border: none;
-            border-radius: 5px; /* Match file input border-radius */
-            cursor: pointer;
-            font-size: 1.1em;
+        .logo-badge span {
+            font-size: 0.78rem;
             font-weight: 600;
-            transition: background-color 0.2s ease, opacity 0.3s ease;
-            margin: 0; /* Remove individual margin as gap is used */
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
         }
 
-        input[type="submit"]:hover {
-            background-color: #218838; /* Darker green on hover */
-            opacity: 0.9;
+        .header h1 {
+            font-size: clamp(2.4rem, 6vw, 4rem);
+            font-weight: 800;
+            line-height: 1.1;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 50%, var(--accent-violet) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
         }
 
-        /* Result Section Styling */
-        .result-section {
-            margin-top: 40px; /* Increased margin */
-            background-color: #f1f7f9; /* Very light blue/gray background */
-            padding: 30px; /* Increased padding */
-            border-radius: 8px; /* Match container border-radius */
-            border: 1px solid #cce5ff; /* Light blue border */
-            width: 100%; /* Take full width of container */
-            box-sizing: border-box; /* Include padding and border in element's total width */
-            text-align: left; /* Align text left */
+        .header p {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.7;
+            font-weight: 400;
         }
 
-        .result-item {
-            font-size: 1.2em; /* Larger font size */
-            color: #333;
-            margin-bottom: 15px; /* Increased margin */
-            word-break: break-word; /* Prevent long filenames from overflowing */
+        /* ===== STATS ROW ===== */
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fadeIn 0.8s ease 0.2s both;
         }
 
-        .result-item strong {
-            color: #007bff; /* Use primary blue for emphasis */
-            font-weight: 700; /* Bolder */
+        .stat-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 50px;
+            padding: 8px 18px;
+            backdrop-filter: blur(10px);
+            font-size: 0.82rem;
+            color: var(--text-secondary);
         }
 
-        .result-item span {
-            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; /* Better monospace font stack */
-            background-color: #e9ecef; /* Light gray background */
-            padding: 4px 8px; /* Increased padding */
-            border-radius: 4px;
-            border: 1px solid #ced4da;
-            font-size: 0.9em; /* Slightly smaller font for span */
-            display: inline-block; /* Allow padding/margin */
-            margin-left: 5px; /* Space after the label */
-        }
+        .stat-chip .icon { font-size: 1rem; }
+        .stat-chip strong { color: var(--text-primary); font-weight: 600; }
 
-        /* Probabilities Styling */
-        .probabilities {
-            margin-top: 20px; /* Increased margin */
-            font-size: 1.05em;
-            color: #555;
-        }
-
-        .probabilities strong {
-             color: #333; /* Darker color for label */
-        }
-
-        .probabilities ul {
-            list-style: disc; /* Use discs for list items */
-            padding-left: 20px; /* Add padding */
-            text-align: left;
-            max-width: 400px; /* Adjusted max-width */
-            margin: 10px 0 0 20px; /* Adjust margin and add left padding */
-            line-height: 1.8; /* Increased line spacing */
-        }
-
-         .probabilities li {
-            margin-bottom: 8px; /* Space between list items */
-            color: #444;
-         }
-
-        /* Flash Messages Styling */
-        .flash-messages {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 25px 0; /* Increased margin */
+        /* ===== MAIN CARD ===== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: 40px;
             width: 100%;
-            box-sizing: border-box; /* Include padding/border in width */
+            max-width: 680px;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 32px 64px rgba(0,0,0,0.5),
+                var(--glow-purple);
+            animation: fadeInUp 0.7s ease 0.15s both;
         }
 
-        .flash-messages li {
-            padding: 15px 20px; /* Increased padding */
-            margin-bottom: 12px; /* Increased margin */
-            border-radius: 5px; /* Match container border-radius */
-            text-align: left;
-            font-size: 1em;
-            border: 1px solid transparent;
-            opacity: 0.95; /* Slightly transparent */
+        /* ===== UPLOAD ZONE ===== */
+        .upload-zone {
+            border: 2px dashed rgba(0, 212, 255, 0.25);
+            border-radius: var(--radius-md);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            background: rgba(0, 212, 255, 0.02);
+            margin-bottom: 24px;
         }
 
-        .flash-messages .error {
-            background-color: #f8d7da; /* Light red */
-            color: #721c24; /* Dark red */
-            border-color: #f5c6cb; /* Red border */
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 212, 255, 0.06);
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.12);
+            transform: translateY(-2px);
         }
 
-        .flash-messages .warning {
-            background-color: #fff3cd; /* Light yellow */
-            color: #856404; /* Dark yellow */
-            border-color: #ffeeba; /* Yellow border */
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
         }
 
-        .flash-messages .info { /* Style for info/success */
-            background-color: #d4edda; /* Light green */
-            color: #155724; /* Dark green */
-            border-color: #c3e6cb; /* Green border */
+        .upload-icon-wrap {
+            width: 72px; height: 72px;
+            background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(124,58,237,0.12));
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            transition: var(--transition);
         }
 
-        /* Responsive Adjustments */
-        @media (max-width: 600px) {
-            .container {
-                padding: 30px 20px; /* Adjust padding on smaller screens */
-            }
+        .upload-zone:hover .upload-icon-wrap {
+            transform: scale(1.08);
+            box-shadow: 0 0 24px rgba(0,212,255,0.25);
+        }
 
-            h1 {
-                font-size: 1.8em;
-            }
+        .upload-icon-wrap svg {
+            width: 32px; height: 32px;
+            stroke: var(--accent-cyan);
+        }
 
-            h2 {
-                font-size: 1.4em;
-            }
+        .upload-zone h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
 
-            p {
-                font-size: 1em;
-            }
+        .upload-zone p {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
 
-            form {
-                flex-direction: column; /* Stack form elements vertically */
-                align-items: stretch; /* Stretch items to fill width */
-            }
+        .file-badge {
+            display: inline-block;
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.25);
+            color: var(--accent-cyan);
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.05em;
+        }
 
-            input[type="file"],
-            input[type="submit"] {
-                 width: 100%; /* Make inputs take full width */
-                 min-width: 0; /* Remove min-width constraint */
-                 margin: 5px 0; /* Add vertical margin */
-            }
+        /* File selected state */
+        .file-selected-info {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 0.88rem;
+        }
 
-            input[type="file"]::file-selector-button {
-                 margin-right: 10px;
-            }
+        .file-selected-info.visible { display: flex; }
 
-            .result-section {
-                padding: 20px;
-            }
+        .file-selected-info .file-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
 
-            .result-item {
-                font-size: 1.1em;
-            }
+        .file-selected-info .file-name {
+            font-weight: 600;
+            color: var(--accent-green);
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
-            .probabilities ul {
-                padding-left: 15px;
-                margin-left: 15px;
-            }
+        /* ===== SUBMIT BUTTON ===== */
+        .btn-predict {
+            width: 100%;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #7c3aed, #00d4ff);
+            border: none;
+            border-radius: var(--radius-md);
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-predict::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(124, 58, 237, 0.5), 0 0 0 1px rgba(0,212,255,0.3);
+        }
+
+        .btn-predict:hover::before { opacity: 1; }
+        .btn-predict:active { transform: translateY(0); }
+
+        .btn-predict.loading {
+            pointer-events: none;
+            opacity: 0.85;
+        }
+
+        .btn-predict .btn-text { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+        /* Spinner */
+        .spinner {
+            display: none;
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        .btn-predict.loading .spinner { display: inline-block; }
+        .btn-predict.loading .btn-label { display: none; }
+
+        /* ===== FLASH MESSAGES ===== */
+        .flash-list {
+            list-style: none;
+            margin-bottom: 24px;
+        }
+
+        .flash-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            animation: slideIn 0.4s ease;
+        }
+
+        .flash-list .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+        }
+
+        .flash-list .warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: #fcd34d;
+        }
+
+        .flash-list .info {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: #6ee7b7;
+        }
+
+        /* ===== RESULT SECTION ===== */
+        .result-card {
+            margin-top: 32px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            animation: resultReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .result-header {
+            background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(0,212,255,0.2));
+            border: 1px solid rgba(0,212,255,0.2);
+            border-bottom: none;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .result-header-icon {
+            width: 40px; height: 40px;
+            background: rgba(0,212,255,0.15);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .result-header-text h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .result-header-text p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .result-body {
+            background: rgba(10, 22, 40, 0.8);
+            border: 1px solid rgba(0,212,255,0.15);
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            padding: 28px 24px;
+        }
+
+        /* Prediction badge */
+        .prediction-display {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+            padding: 20px;
+            background: rgba(124, 58, 237, 0.08);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: var(--radius-md);
+        }
+
+        .prediction-label-text {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .prediction-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .prediction-icon {
+            font-size: 2.5rem;
+            flex-shrink: 0;
+        }
+
+        /* Class label descriptions */
+        .class-label-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        /* ===== CONFIDENCE BARS ===== */
+        .confidence-section h3 {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 18px;
+        }
+
+        .confidence-item {
+            margin-bottom: 14px;
+        }
+
+        .confidence-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .confidence-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .confidence-label .class-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .confidence-pct {
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-cyan);
+        }
+
+        .confidence-bar-track {
+            height: 6px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50px;
+            overflow: hidden;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            border-radius: 50px;
+            width: 0%;
+            transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Highlight the top prediction bar */
+        .confidence-item.is-best .confidence-bar-fill {
+            box-shadow: 0 0 12px currentColor;
+        }
+
+        .confidence-item.is-best .confidence-label { color: var(--accent-cyan); }
+
+        /* Color per class */
+        .bar-a { background: linear-gradient(90deg, #06b6d4, #0ea5e9); }
+        .bar-b { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+        .bar-c { background: linear-gradient(90deg, #10b981, #34d399); }
+        .bar-d { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .bar-e { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+        .dot-a { background: #06b6d4; }
+        .dot-b { background: #8b5cf6; }
+        .dot-c { background: #10b981; }
+        .dot-d { background: #f59e0b; }
+        .dot-e { background: #ef4444; }
+
+        /* ===== INFO CARDS ROW (Below main card) ===== */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            width: 100%;
+            max-width: 680px;
+            margin-top: 24px;
+            animation: fadeIn 0.9s ease 0.4s both;
+        }
+
+        .info-chip {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .info-chip:hover {
+            border-color: rgba(0,212,255,0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .info-chip .ic-icon { font-size: 1.6rem; margin-bottom: 8px; }
+        .info-chip .ic-value {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .info-chip .ic-label {
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        /* ===== DATASET LEGEND ===== */
+        .legend-card {
+            width: 100%;
+            max-width: 680px;
+            margin-top: 20px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 1s ease 0.5s both;
+        }
+
+        .legend-card h3 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .legend-item {
+            text-align: center;
+            padding: 12px 8px;
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: var(--transition);
+        }
+
+        .legend-item:hover {
+            background: rgba(255,255,255,0.05);
+            transform: translateY(-2px);
+        }
+
+        .legend-item .li-set {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+        }
+
+        .legend-item .li-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .set-a .li-set { color: #06b6d4; }
+        .set-b .li-set { color: #8b5cf6; }
+        .set-c .li-set { color: #10b981; }
+        .set-d .li-set { color: #f59e0b; }
+        .set-e .li-set { color: #ef4444; }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            margin-top: 48px;
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            animation: fadeIn 1s ease 0.6s both;
+        }
+
+        .footer a { color: var(--accent-cyan); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-12px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+            50%       { opacity: 0.8; transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes resultReveal {
+            from { opacity: 0; transform: translateY(20px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes brainPulse {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(0,212,255,0.6)); }
+            50%       { filter: drop-shadow(0 0 20px rgba(124,58,237,0.8)); }
+        }
+
+        /* ===== EEG WAVEFORM ANIMATION ===== */
+        .eeg-wave-container {
+            height: 48px;
+            width: 100%;
+            margin: 20px 0 0;
+            overflow: hidden;
+            opacity: 0.35;
+        }
+        .eeg-wave-container svg { width: 100%; height: 100%; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 640px) {
+            .card { padding: 28px 20px; }
+            .info-grid { grid-template-columns: repeat(3, 1fr); }
+            .legend-grid { grid-template-columns: repeat(3, 1fr); }
+            .legend-item:nth-child(4),
+            .legend-item:nth-child(5) { grid-column: span 1; }
+            .header h1 { font-size: 2rem; }
+            .prediction-value { font-size: 1.4rem; }
+        }
+
+        @media (max-width: 400px) {
+            .info-grid { grid-template-columns: 1fr 1fr; }
+            .legend-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>EEG Signal Classifier</h1>
-        <p>Upload a <code>.txt</code> file containing EEG data (like Z001.txt, O050.txt, etc.) to classify it into Set A, B, C, D, or E.</p>
 
+<div class="page-wrapper">
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="logo-badge">
+            <div class="pulse-dot"></div>
+            <span>Neural Classification System</span>
+        </div>
+        <h1>🧠 NeuroScan</h1>
+        <p>Upload an EEG signal file to detect brain states — from healthy wakefulness to active epileptic seizures — powered by machine learning.</p>
+
+        <!-- Decorative EEG wave -->
+        <div class="eeg-wave-container">
+            <svg viewBox="0 0 800 48" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="0,24 40,24 50,8 60,40 70,12 80,36 90,20 100,24 150,24 160,6 170,42 180,18 190,30 200,24 250,24 258,14 266,34 274,10 282,38 290,22 298,26 306,24 350,24 360,4 368,44 376,16 384,32 392,20 400,24 450,24 458,12 466,36 474,8 482,40 490,22 498,26 506,24 550,24 560,6 568,42 576,18 584,30 592,22 600,24 650,24 658,14 666,34 674,10 682,38 690,22 698,26 706,24 750,24 760,8 770,40 780,16 790,32 800,24"
+                    stroke="url(#waveGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <defs>
+                    <linearGradient id="waveGrad" x1="0" y1="0" x2="800" y2="0" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#7c3aed"/>
+                        <stop offset="50%" stop-color="#00d4ff"/>
+                        <stop offset="100%" stop-color="#7c3aed"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+    </header>
+
+    <!-- ===== STATS ROW ===== -->
+    <div class="stats-row">
+        <div class="stat-chip"><span class="icon">📊</span> <strong>500</strong> Training Samples</div>
+        <div class="stat-chip"><span class="icon">⚡</span> <strong>5</strong> Brain State Classes</div>
+        <div class="stat-chip"><span class="icon">🎯</span> <strong>ML</strong> GridSearchCV Tuned</div>
+        <div class="stat-chip"><span class="icon">📡</span> <strong>173.61 Hz</strong> Sample Rate</div>
+    </div>
+
+    <!-- ===== MAIN CARD ===== -->
+    <div class="card">
+
+        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <ul class="flash-messages">
+                <ul class="flash-list">
                 {% for category, message in messages %}
-                    {# Default category to 'info' if not specified #}
-                    <li class="{{ category if category else 'info' }}">{{ message }}</li>
+                    <li class="{{ category if category else 'info' }}">
+                        {% if category == 'error' %}⚠️{% elif category == 'warning' %}⚡{% else %}✅{% endif %}
+                        {{ message }}
+                    </li>
                 {% endfor %}
                 </ul>
             {% endif %}
         {% endwith %}
 
-        <form method="post" action="{{ url_for('upload_file_and_predict') }}" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".txt,.TXT" required>
-            <input type="submit" value="Upload & Predict">
+        <!-- Upload Form -->
+        <form id="upload-form" method="post" action="{{ url_for('upload_file_and_predict') }}" enctype="multipart/form-data">
+
+            <div class="upload-zone" id="upload-zone">
+                <input type="file" name="file" accept=".txt,.TXT" required id="file-input">
+                <div class="upload-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </div>
+                <h3>Drop your EEG file here</h3>
+                <p>or click to browse from your computer</p>
+                <span class="file-badge">.txt &nbsp;/&nbsp; .TXT</span>
+            </div>
+
+            <!-- File selected info row -->
+            <div class="file-selected-info" id="file-info">
+                <span class="file-icon">📄</span>
+                <span class="file-name" id="file-name-label">No file chosen</span>
+            </div>
+
+            <button type="submit" class="btn-predict" id="submit-btn">
+                <span class="btn-text">
+                    <span class="spinner"></span>
+                    <span class="btn-label">⚡ Analyse Signal</span>
+                </span>
+            </button>
         </form>
 
-        {# Display prediction results only if prediction exists #}
+        <!-- ===== RESULTS ===== -->
         {% if prediction %}
-        <div class="result-section">
-             <h2>Prediction Result</h2>
-             <div class="result-item">File: <span>{{ filename }}</span></div>
-             <div class="result-item">Predicted Class: <strong>{{ prediction }}</strong></div>
+        <div class="result-card" id="result-section">
 
-             {# Display probabilities if available #}
-             {% if probabilities %}
-             <div class="probabilities">
-                 <strong>Confidence Scores:</strong>
-                 <ul>
-                     {% for class_name, prob in probabilities.items() %}
-                         <li>{{ class_name }}: {{ prob }}</li>
-                     {% endfor %}
-                 </ul>
-             </div>
-             {% endif %}
+            <div class="result-header">
+                <div class="result-header-icon">🔬</div>
+                <div class="result-header-text">
+                    <h2>Classification Result</h2>
+                    <p>{{ filename }}</p>
+                </div>
+            </div>
+
+            <div class="result-body">
+
+                <!-- Top prediction -->
+                <div class="prediction-display">
+                    <div class="prediction-icon">
+                        {% if prediction == 'Set A' %}🟦
+                        {% elif prediction == 'Set B' %}🟣
+                        {% elif prediction == 'Set C' %}🟩
+                        {% elif prediction == 'Set D' %}🟨
+                        {% elif prediction == 'Set E' %}🔴
+                        {% else %}🔵
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="prediction-label-text">Predicted Class</div>
+                        <div class="prediction-value">{{ prediction }}</div>
+                        <div class="class-label-desc">
+                            {% if prediction == 'Set A' %}Healthy subject — eyes open (surface EEG)
+                            {% elif prediction == 'Set B' %}Healthy subject — eyes closed (surface EEG)
+                            {% elif prediction == 'Set C' %}Epileptic — non-seizure (opposite hemisphere)
+                            {% elif prediction == 'Set D' %}Epileptic — non-seizure (seizure zone)
+                            {% elif prediction == 'Set E' %}⚠️ Epileptic — Active Seizure (ictal)
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confidence Bars -->
+                {% if probabilities %}
+                <div class="confidence-section">
+                    <h3>Confidence Scores</h3>
+
+                    {% set class_colors = {'Set A': 'a', 'Set B': 'b', 'Set C': 'c', 'Set D': 'd', 'Set E': 'e'} %}
+
+                    {% for class_name, prob in probabilities.items() %}
+                    {% set color_key = class_colors.get(class_name, 'a') %}
+                    {% set is_best = class_name == prediction %}
+                    <div class="confidence-item {% if is_best %}is-best{% endif %}">
+                        <div class="confidence-row">
+                            <span class="confidence-label">
+                                <span class="class-dot dot-{{ color_key }}"></span>
+                                {{ class_name }}
+                            </span>
+                            <span class="confidence-pct">{{ prob }}</span>
+                        </div>
+                        <div class="confidence-bar-track">
+                            <div class="confidence-bar-fill bar-{{ color_key }}"
+                                 data-width="{{ prob }}"
+                                 style="width: 0%;">
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+            </div>
         </div>
         {% endif %}
+
+    </div><!-- end .card -->
+
+    <!-- ===== MODEL STATS ROW ===== -->
+    <div class="info-grid">
+        <div class="info-chip">
+            <div class="ic-icon">🤖</div>
+            <div class="ic-value">RF/SVM</div>
+            <div class="ic-label">Classifier</div>
+        </div>
+        <div class="info-chip">
+            <div class="ic-icon">📐</div>
+            <div class="ic-value">129</div>
+            <div class="ic-label">PSD Features</div>
+        </div>
+        <div class="info-chip">
+            <div class="ic-icon">🔁</div>
+            <div class="ic-value">5-Fold</div>
+            <div class="ic-label">Cross-Val</div>
+        </div>
     </div>
+
+    <!-- ===== CLASS LEGEND ===== -->
+    <div class="legend-card">
+        <h3>📋 Dataset Class Reference</h3>
+        <div class="legend-grid">
+            <div class="legend-item set-a">
+                <div class="li-set">Set A</div>
+                <div class="li-desc">Healthy<br>Eyes Open</div>
+            </div>
+            <div class="legend-item set-b">
+                <div class="li-set">Set B</div>
+                <div class="li-desc">Healthy<br>Eyes Closed</div>
+            </div>
+            <div class="legend-item set-c">
+                <div class="li-set">Set C</div>
+                <div class="li-desc">Epileptic<br>Opposite Zone</div>
+            </div>
+            <div class="legend-item set-d">
+                <div class="li-set">Set D</div>
+                <div class="li-desc">Epileptic<br>Seizure Zone</div>
+            </div>
+            <div class="legend-item set-e">
+                <div class="li-set">Set E ⚠️</div>
+                <div class="li-desc">Active<br>Seizure</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <p>Built with Flask &amp; scikit-learn &nbsp;·&nbsp; Bonn University EEG Dataset &nbsp;·&nbsp;
+        <a href="https://github.com/krishna-mhaske/EEG_Classifier_Project" target="_blank">View on GitHub ↗</a></p>
+    </footer>
+
+</div><!-- end .page-wrapper -->
+
+<script>
+    // ===== FILE INPUT INTERACTION =====
+    const fileInput   = document.getElementById('file-input');
+    const fileInfo    = document.getElementById('file-info');
+    const fileLabel   = document.getElementById('file-name-label');
+    const uploadZone  = document.getElementById('upload-zone');
+    const form        = document.getElementById('upload-form');
+    const submitBtn   = document.getElementById('submit-btn');
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            const name = fileInput.files[0].name;
+            fileLabel.textContent = name;
+            fileInfo.classList.add('visible');
+        }
+    });
+
+    // Drag & Drop
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('drag-over');
+    });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileLabel.textContent = e.dataTransfer.files[0].name;
+            fileInfo.classList.add('visible');
+        }
+    });
+
+    // Loading state on submit
+    form.addEventListener('submit', () => {
+        submitBtn.classList.add('loading');
+    });
+
+    // ===== ANIMATE CONFIDENCE BARS =====
+    function animateBars() {
+        const bars = document.querySelectorAll('.confidence-bar-fill');
+        bars.forEach((bar, i) => {
+            const rawVal = bar.getAttribute('data-width');      // e.g. "87.34%"
+            const numVal = parseFloat(rawVal);                  // 87.34
+            setTimeout(() => {
+                bar.style.width = numVal + '%';
+            }, 200 + i * 80);
+        });
+    }
+
+    // Run on load if results exist
+    window.addEventListener('load', () => {
+        animateBars();
+        // Scroll to result if it exists
+        const result = document.getElementById('result-section');
+        if (result) {
+            setTimeout(() => result.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 400);
+        }
+    });
+</script>
 
 </body>
 </html>
