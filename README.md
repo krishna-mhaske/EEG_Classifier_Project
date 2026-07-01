@@ -6,7 +6,7 @@
 ![Flask](https://img.shields.io/badge/Flask-Web%20App-black?logo=flask)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange?logo=scikit-learn)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Deployment](https://img.shields.io/badge/Deploy-Heroku%20Ready-purple?logo=heroku)
+
 
 ---
 ## Demo 
